@@ -253,13 +253,14 @@ for fasta_file in $(cat brazil_fasta_julDec/COVID_List_Region.txt); do ## Howeve
   $Region"_julDec_bcf"/$fasta_file".bcf"
   
   ## Bcftools extracts SNPs
-  ~/anaconda3/bin/bcftools view -v snps $Region"_julDec_bcf"/$fasta_file".bcf" > $Region"_vcf_julDec_snp"/$fasta_file"_snps.vcf"
+  ~/Desktop/Gepoliano/bcftools/bcftools view -v snps $Region"_julDec_bcf"/$fasta_file".bcf" > $Region"_vcf_julDec_snp"/$fasta_file"_snps.vcf"
 
   ## Bcftools extracts indels
-  ~/anaconda3/bin/bcftools view -v indels $Region"_julDec_bcf"/$fasta_file".bcf" > $Region"_vcf_julDec_indel"/$fasta_file"_indels.vcf"
+  ~/Desktop/Gepoliano/bcftools/bcftools view -v indels $Region"_julDec_bcf"/$fasta_file".bcf" > $Region"_vcf_julDec_indel"/$fasta_file"_indels.vcf"
 
 done
 ```
+
 
 
 # 4) Contando el número de mutaciones
@@ -300,7 +301,7 @@ grep -w 28882 * | wc -l
 grep -w 28883 * | wc -l
 ```
 
-# 5) Implementación del cálculo de frecuencias alélicas
+# 5.1) Implementación del cálculo de frecuencias alélicas
 
 * Para atribuir el resultado de la evaluación computacional a la variable se consultó la siguiente referencia:
 
@@ -309,33 +310,58 @@ https://stackoverflow.com/questions/4651437/how-do-i-set-a-variable-to-the-outpu
 ```{bash}
 cd brazil_fasta_julDec
 NumeroTotalFASTA=$(for i in Brazil*; do echo $i; done | wc -l)
-echo "${TotalFASTNumber}"
+echo "${NumeroTotalFASTA}"
 
 
 cd ~/Desktop/Gepoliano/SARS-CoV-2_Analysis/brazil_vcf_julDec_snp
 NumeroN501Y=$(grep 23063 * | wc -l )
-echo "${NumberN501Y}"
+echo "${NumeroN501Y}"
 
-echo "scale=3; ${NumberN501Y} / ${TotalFASTNumber} " | bc
+echo "scale=3; ${NumeroN501Y} / ${NumeroTotalFASTA} " | bc
 
 
 ##frequency= ( $NumeroTotalFASTA / $NumeroN501Y )
-##echo " Frequency is N501Y = $frequency"
+##echo " A Frequência é de N501Y = $frequency"
 ```
+
+# 5.2) Implementación del cálculo de frecuencias alélicas
+
+```{bash}
+## Count total number of FASTA files
+cd brazil_fasta_julDec
+NumeroTotalFASTA=$(for i in Brazil*; do echo $i; done | wc -l)
+echo "${NumeroTotalFASTA}"
+
+## Check current directory
+pwd
+
+## Go back to the previous directory, because VCF files are stored inside it
+cd ..
+
+## Go to VCF file directory and count number of times a mutation is observed
+cd brazil_vcf_julDec_snp
+NumeroN501Y=$(grep 23063 * | wc -l )
+echo "${NumeroN501Y}"
+
+## Print resut of frequency calculation to screen
+echo "scale=3; ${NumeroN501Y} / ${NumeroTotalFASTA} " | bc
+
+
+```
+
+# 5.3) Calcular frecuencias Alélicas en for loop
 
 ```{bash}
 cd brazil_fasta_julDec
 NumeroTotalFASTA=$(for i in Brazil*; do echo $i; done | wc -l)
-echo "${TotalFASTNumber}"
 
-cd ~/Desktop/Gepoliano/SARS-CoV-2_Analysis/brazil_vcf_julDec_snp
-NumeroN501Y=$(grep 23063 * | wc -l )
-echo "${NumberN501Y}"
+cd ..
 
-echo "scale=3; ${NumberN501Y} / ${TotalFASTNumber} " | bc
-
-frequency=$("scale=3; ${NumberN501Y} / ${TotalFASTNumber} " | bc)
-echo "The Frequency of N501Y is: "$frequency
+for Variant in $(cat VariantList.txt.tmp); do
+  Variant_Total_Occurrences=$(grep $Variant brazil_vcf_julDec_snp/* | wc -l )
+  echo "scale=2; 100*${Variant_Total_Occurrences} / ${NumeroTotalFASTA} " | bc
+  #echo "scale=3; ${Variant_Total_Occurrences} / ${NumeroTotalFASTA} " | bc
+done
 ```
 
 
