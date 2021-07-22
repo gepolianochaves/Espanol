@@ -1,0 +1,388 @@
+---
+title: "Variantes con Archivos FASTA"
+author: "Gepoliano Chaves, Ph. D."
+date: "July 21, 2021"
+#output: pdf_document
+#output: revealjs::revealjs_presentation
+#output: html_notebook
+#output: beamer_presentation
+#output: github_document
+#output: html_vignette
+#output: ioslides_presentation
+output: slidy_presentation 
+#output: tufte::tufte_book
+---
+
+# 1. Introducción
+
+En el Cuaderno 2, ilustramos una de las aplicaciones de los conocimientos impartidos en este curso: el establecimiento de la Asociación Biológica entre genotipo (los polimorfismos del ADN) y fenotipo mediante software estadístico (PLINK). En Notebook 1, tuvimos una introducción a la programación, con la instalación de bibliotecas en R y el uso de programas para ver archivos de texto. Aquí, vamos a expandir la noción de un archivo de texto, a la noción de un archivo almacenado en forma de texto, donde también podemos almacenar una secuencia biológica. El primer archivo de almacenamiento de secuencias biológicas que estudiaremos será el archivo FASTA. El archivo FASTA puede almacenar una secuencia de ADN en formato de texto.
+
+# 1) Introducción: que haremos hoy
+
+* Descargar archivos FASTA de la base de datos GISAID usando el período 01/07/2020 al 31/12/2020 como referencia
+* Fecha aproximada de inicio de circulación de nuevas variantes
+* Fragmentar cada una de las 317 secuencias descargadas (en el caso de muestras de Brasil)
+* Alinear secuencias al genoma de referencia
+* Comparar e identificar variantes
+* Producir archivos de alineación y variantes
+
+
+# 1) archivo FASTA
+
+! [Formato de archivo FASTA: un archivo de texto que contiene una secuencia biológica.] (/ Users / gepolianochaves / Desktop / Pictures / FASTA.png)
+
+
+
+
+# 1) Explicando el Pipeline
+
+En este cuaderno profundizamos en el análisis de secuencias con el inicio de la Identificación de Variantes Genéticas. Aquí, tratamos las variantes genéticas como polimorfismos de ADN. Un polimorfismo de ADN es una mutación o variante, que difiere del nucleótido que se encuentra en la misma posición en la secuencia FASTA utilizada como referencia. Así, el actual * pipeline * define el protocolo computacional para la Asociación Biológica o Genética con un rasgo fenotípico. En inglés, este protocolo computacional se llama * Variant Call *.
+
+# 1) Explicando el Pipeline: SNP
+
+En este folleto, haremos una * Variant Call * utilizando archivos FASTA que contienen el genoma del SARS-CoV-2, que es la secuencia biológica del genoma del virus, en un archivo de texto, específicamente llamado FASTA (Figura 1). Identificamos variantes de SARS-CoV-2 usando samtools y bcftools para extraer polimorfismos genéticos de archivos FASTA. El archivo FASTA debe descargarse de GISAID y almacenarse localmente, en una carpeta en el sistema local del investigador. Las variantes genéticas, también llamadas SNP (* Polimorfismos de nucleótido único *), se determinan comparando un archivo FASTA utilizado como referencia, con la secuencia aislada de la región geográfica de interés.
+
+# 1) Explicando el pipeline: base de datos GISAID
+
+Al comparar la secuencia FASTA de cada región del planeta con una secuencia FASTA de referencia, por ejemplo, la primera secuencia FASTA correspondiente al paciente inicial que presenta síntomas de síndrome respiratorio, posteriormente identificado como causado por SARS-CoV-2, podemos anotar cada posición. donde hay un nucleótido diferente de la secuencia de referencia FASTA obtenida del primer paciente chino. Decimos, entonces, que en las demás regiones existen mutaciones de virus o, más técnicamente, polimorfismos del material genético viral. Los archivos FASTA de prácticamente todas las regiones del planeta se pueden obtener de la base de datos alemana GISAID (Iniciativa global para compartir datos sobre la influenza aviar). La información sobre la base de datos GISAID se puede obtener en su sitio web:
+
+https://www.gisaid.org
+
+# 1) Explicando el Pipeline: Gene Expression Omnibus (GEO)
+
+En el Cuaderno de Biología Computacional Número 6, aprenderemos cómo identificar variantes genéticas usando archivos FASTQ en lugar de archivos FASTA. Los archivos FASTQ se pueden analizar directamente desde una base de datos llamada * Gene Expression Omnibus * (GEO). La ventaja de GEO en comparación con GISAID es que si se utiliza el proceso adecuado de identificación de variantes genéticas en GEO, no se requiere el almacenamiento local de archivos de secuenciación.
+
+# 1) * script * envío al servidor computacional
+
+A menudo, la cantidad de datos de secuenciación a analizar es tan grande que es necesario utilizar computadoras con una capacidad de almacenamiento superpoderosa. La parte siguiente, codificada en Bash, se realiza utilizando el sistema operativo Linux. El código representa un tipo de "encabezado" que debe incluirse para enviar scripts utilizando el sistema Linux en servidores informáticos.
+
+# 1) * script * envío al servidor computacional
+
+```{bash, eval = F}
+#!/bin/bash
+#SBATCH --partition=128x24
+##SBATCH --job-name=Variants_BWA # Job name
+##SBATCH --mail-type=ALL              # Mail events (NONE, BEGIN, END, FAIL, ALL)
+##SBATCH --mail-user=gchaves@ucsc.edu  # Where to send mail	
+##SBATCH --nodes=1                    # Use one node
+##SBATCH --ntasks=1                   # Run a single task	
+##SBATCH --cpus-per-task=4            # Number of CPU cores per task
+##SBATCH --output=Variants_BWA     # Standard output and error log
+# 
+# module load gcc/5.4.0
+source ~/.bashrc
+```
+
+# 2) Lidiando con la arquitectura de su sistema informático: crear una carpeta para el almacenamiento de datos
+
+La organización de archivos es esencial para pasos claros y organizados en los diversos procedimientos utilizados, a menudo sin una visualización perfecta de cómo funciona la computadora. El extracto a continuación crea carpetas para el almacenamiento del archivo FASTA de referencia, los archivos FASTA de la región de interés (Brasil), los archivos de alineación SAM y BAM y finalmente, los archivos BCF y VCF, que contienen información sobre la ubicación en el lineal. genoma, de la posición de las mutaciones identificadas. Los archivos VCF se extraen de dos formas, una que contiene SNP y otra que contiene indels.
+
+```{r}
+# Armazenar FASTA referência
+if (!dir.exists("fasta_reference_file")) {
+  dir.create("fasta_reference_file")
+}
+
+# Armazenar Arquivo FASTA para cada região
+if (!dir.exists("SARS-CoV-2_Regions")) {
+  dir.create("SARS-CoV-2_Regions")
+}
+
+# Armazenar FASTAs do Brasil
+if (!dir.exists("brazil_fasta_julDec")) {
+  dir.create("brazil_fasta_julDec")
+}
+
+# Armazenar alinhamentos SAM do Brasil
+if (!dir.exists("brazil_alignment_julDec_sam")) {
+  dir.create("brazil_alignment_julDec_sam")
+}
+
+# Armazenar alinhamentos BAM do Brasil (arquivo binário)
+if (!dir.exists("brazil_alignment_julDec_bam")) {
+  dir.create("brazil_alignment_julDec_bam")
+}
+
+# Armazenar variantes em BCF do Brasil (arquivo binário)
+if (!dir.exists("brazil_julDec_bcf")) {
+  dir.create("brazil_julDec_bcf")
+}
+
+# Armazenar variantes em VCF do Brasil (arquivo binário)
+if (!dir.exists("brazil_vcf_julDec_snp")) {
+  dir.create("brazil_vcf_julDec_snp")
+}
+
+# Armazenar variantes (indels) em BCF (arquivo binário)
+if (!dir.exists("brazil_vcf_julDec_indel")) {
+  dir.create("brazil_vcf_julDec_indel")
+}
+```
+
+# 2) Organización general del proceso de alineación
+
+Los siguientes pasos deben ser realizados por la canalización de identificación de variantes genéticas:
+
+* Indexación
+
+* Alineación
+
+* Identificación de variantes
+
+* Extraer y exportar variantes
+
+* Cálculo de genotipos y frecuencias alélicas
+
+# 2.1) Indexación usando el programa BWA
+
+* La indexación solo debe realizarse una vez
+
+* El mismo índice se usa para alinear diferentes muestras usando una única secuencia de referencia FASTA.
+
+```{bash}
+~/anaconda3/bin/bwa index -a bwtsw fasta_reference_file/SARS-CoV-2.fasta
+```
+
+# 2.1) ¿Para qué sirve la indexación?
+
+* La indexación de un genoma se puede explicar de manera similar a la indexación de un libro.
+* Si desea saber en qué página aparece una determinada palabra o comienza un capítulo, es mucho más eficiente / rápido buscarlo en un índice prediseñado que revisar cada página del libro hasta encontrarlo.
+* Lo mismo ocurre con las alineaciones.
+
+# 2.1) ¿Para qué sirve la indexación?
+
+* Los índices permiten al alineador reducir el origen potencial de una secuencia de consulta dentro del genoma, lo que ahorra tiempo y memoria.
+
+* Puede echar un vistazo al canal de youtube de Ben Langmeads (creador del software de alineación bowtie y bowtie2), donde da conferencias sobre conceptos de alineación de secuencias, incluida la idea de indexación.
+
+# 2.1) ¿Para qué sirve la indexación?
+
+* Referencias
+
+https://www.biostars.org/p/212594/
+
+https://www.youtube.com/user/BenLangmead
+
+# 2.2) Descargar y dividir FASTA
+
+* Descargue archivos FASTA por región y guárdelos en la carpeta SARS-CoV-2_Regions, para dividirlos por muestra;
+
+* A continuación, se descargó el archivo FASTA y se guardó como Brazil_2020_07_01-2020_12_31.fasta, indicando el período y la región geográfica;
+
+* El archivo Brazil_2020_07_01-2020_12_31.fasta debe guardarse en SARS-CoV-2_Regions antes de ejecutar el * fragmento * a continuación;
+
+* El archivo FASTA descargado de GISAID se nombra según la región (Brasil) y las fechas de recolección y envío de los archivos;
+
+* Es necesario instalar el programa ** splitfasta ** para "romper" el archivo FASTA descargado.
+
+```{bash}
+## Vai para pasta em que 
+cd SARS-CoV-2_Regions
+
+## Use splitfasta to split big FASTA file into its pieces.
+/Users/gepolianochaves/anaconda3/bin/splitfasta Brazil_2020_07_01-2020_12_31.fasta
+```
+
+# 2.3) Mover archivo FASTA
+
+* Mover el archivo FASTA a una región específica
+
+* Queremos ver la frecuencia de nuevas variantes entre julio y diciembre.
+
+* Debemos prestar atención a los nombres de las carpetas y archivos creados
+
+```{bash}
+cp SARS-CoV-2_Regions/Brazil_2020_07_01-2020_12_31_split_files/Brazil* \
+brazil_fasta_julDec
+```
+
+# 2.4) Crear lista de archivos FASTA
+
+* Ver la lista de archivos FASTA en la carpeta Brasil;
+
+```{bash}
+cd brazil_fasta_julDec
+for i in Brazil*; do echo $i; done
+```
+
+# 2.4) Contando el número de archivos FASTA en la carpeta Brasil
+
+```{bash}
+cd brazil_fasta_julDec
+for i in Brazil*; do echo $i; done | wc -l
+```
+
+* Crear lista con archivos FASTA de Brasil;
+
+```{bash}
+cd brazil_fasta_julDec
+for i in Brazil*; do echo $i; done > COVID_List_Region.txt
+wc -l COVID_List_Region.txt ## Número total de archivos FASTA
+```
+
+
+# 3) Alineación en * para bucle *
+
+```{bash, eval = F}
+
+Region=brazil # Initially I thought I could define here the region to be analyzed
+
+for fasta_file in $(cat brazil_fasta_julDec/COVID_List_Region.txt); do ## However, it is not possible to declare the variable as an argument of the *cat* command
+
+
+  ## Print names of Project Directory and FASTA file
+  echo $ProjectDirectory
+  echo $fast_file
+  
+  
+  ## Alignment
+  ~/anaconda3/bin/bwa mem -M -R \
+  '@RG\tID:SampleCorona\tLB:sample_1\tPL:ILLUMINA\tPM:HISEQ\tSM:SampleCorona' \
+  fasta_reference_file/SARS-CoV-2.fasta \
+  brazil_fasta_julDec/$fasta_file > \
+  brazil_alignment_julDec_sam/$fasta_file".sam"
+  
+  
+  ## SAM to BAM
+  samtools view -S -b $Region"_alignment_julDec_sam"/$fasta_file".sam" > \
+  $Region"_alignment_julDec_bam"/$fasta_file".bam"
+  
+  
+  ## Samtools uses reference FASTA to detect "piles" in the alignment
+  samtools mpileup -g -f fasta_reference_file/SARS-CoV-2.fasta $Region"_alignment_julDec_bam"/$fasta_file".bam" > \
+  $Region"_julDec_bcf"/$fasta_file".bcf"
+  
+  ## Bcftools extracts SNPs
+  ~/anaconda3/bin/bcftools view -v snps $Region"_julDec_bcf"/$fasta_file".bcf" > $Region"_vcf_julDec_snp"/$fasta_file"_snps.vcf"
+
+  ## Bcftools extracts indels
+  ~/anaconda3/bin/bcftools view -v indels $Region"_julDec_bcf"/$fasta_file".bcf" > $Region"_vcf_julDec_indel"/$fasta_file"_indels.vcf"
+
+done
+```
+
+
+# 4) Contando el número de mutaciones
+
+```{bash}
+cd brazil_vcf_julDec_snp
+
+echo "Mutación N501Y"
+grep -w 23063 * | wc -l # 2/250 archivos
+grep -w 23064 * | wc -l # 0/250 archivos
+grep -w 23065 * | wc -l # 0/250 archivos
+echo "Mutación P681H"
+grep -w 23603 * | wc -l # 0/250 archivos
+grep -w 23604 * | wc -l # 2/250 archivos
+grep -w 23605 * | wc -l # 0/250 archivos
+echo "Eliminación de HV 69–70"
+grep -w 21766 * | wc -l
+grep -w 21767 * | wc -l
+grep -w 21768 * | wc -l
+grep -w 21769 * | wc -l
+grep -w 21770 * | wc -l
+grep -w 21771 * | wc -l
+grep -w 21772 * | wc -l
+echo "Mutaciones anteriores estudiadas"
+grep -w 241 * | wc -l
+grep -w 3037 * | wc -l
+grep -w 11083 * | wc -l
+grep -w 14408 * | wc -l
+grep -w 17747 * | wc -l
+grep -w 17858 * | wc -l
+grep -w 18060 * | wc -l
+grep -w 23403 * | wc -l
+grep -w 26144 * | wc -l
+grep -w 27046 * | wc -l
+grep -w 28144 * | wc -l
+grep -w 28881 * | wc -l
+grep -w 28882 * | wc -l
+grep -w 28883 * | wc -l
+```
+
+# 5) Implementación del cálculo de frecuencias alélicas
+
+* Para atribuir el resultado de la evaluación computacional a la variable se consultó la siguiente referencia:
+
+https://stackoverflow.com/questions/4651437/how-do-i-set-a-variable-to-the-output-of-a-command-in-bash
+
+```{bash}
+cd brazil_fasta_julDec
+NumeroTotalFASTA=$(for i in Brazil*; do echo $i; done | wc -l)
+echo "${TotalFASTNumber}"
+
+
+cd ~/Desktop/Gepoliano/SARS-CoV-2_Analysis/brazil_vcf_julDec_snp
+NumeroN501Y=$(grep 23063 * | wc -l )
+echo "${NumberN501Y}"
+
+echo "scale=3; ${NumberN501Y} / ${TotalFASTNumber} " | bc
+
+
+##frequency= ( $NumeroTotalFASTA / $NumeroN501Y )
+##echo " Frequency is N501Y = $frequency"
+```
+
+```{bash}
+cd brazil_fasta_julDec
+NumeroTotalFASTA=$(for i in Brazil*; do echo $i; done | wc -l)
+echo "${TotalFASTNumber}"
+
+cd ~/Desktop/Gepoliano/SARS-CoV-2_Analysis/brazil_vcf_julDec_snp
+NumeroN501Y=$(grep 23063 * | wc -l )
+echo "${NumberN501Y}"
+
+echo "scale=3; ${NumberN501Y} / ${TotalFASTNumber} " | bc
+
+frequency=$("scale=3; ${NumberN501Y} / ${TotalFASTNumber} " | bc)
+echo "The Frequency of N501Y is: "$frequency
+```
+
+
+# 6) Visualización de variantes de interés
+
+* Interacciones polares entre la proteína SARS-CoV-2 Spike RBD (blanca) y la proteína ACE2 humana (azul) calculadas por Pymol usando la herramienta de mutagénesis.
+
+![Interacciones polares entre la proteína SARS-CoV-2 Spike RBD (blanca) y la proteína ACE2 humana (azul) calculadas por Pymol usando la herramienta de mutagénesis. A) Interacción del residuo ASN501 (N501) de tipo salvaje en el dominio de unión a proteínas Spike SARS-CoV (RBD) con tirosina 41 en ACE2; B) Cuando la asparagina es reemplazada por tirosina en RBD, el número de posibles interacciones de hidrógeno aumenta entre Spike RBD y ACE2, posiblemente explicando la mayor afinidad entre la proteína Spike del virus y ACE2.](/Users/gepolianochaves/Desktop/Gepoliano/ReComBio_Notebook_Preparation/Figures/ACE2_Spike.png){width=90%}
+
+# 6) Visualización de variantes de interés
+ 
+ A) Interacción del residuo ASN501 (N501) de tipo salvaje en el dominio de unión a proteínas Spike SARS-CoV (RBD) con tirosina 41 en ACE2;
+
+
+![Interacciones polares entre la proteína SARS-CoV-2 Spike RBD (blanca) y la proteína ACE2 humana (azul) calculadas por Pymol usando la herramienta de mutagénesis. A) Interacción del residuo ASN501 (N501) de tipo salvaje en el dominio de unión a proteínas Spike SARS-CoV (RBD) con tirosina 41 en ACE2; B) Cuando la asparagina es reemplazada por tirosina en RBD, el número de posibles interacciones de hidrógeno aumenta entre Spike RBD y ACE2, posiblemente explicando la mayor afinidad entre la proteína Spike del virus y ACE2.](/Users/gepolianochaves/Desktop/Gepoliano/ReComBio_Notebook_Preparation/Figures/ACE2_Spike.png){width=90%}
+
+# 6) Visualización de variantes de interés
+ 
+ B) Cuando la asparagina es reemplazada por tirosina en RBD, el número de posibles interacciones de hidrógeno aumenta entre Spike RBD y ACE2, posiblemente explicando la mayor afinidad entre la proteína Spike del virus y ACE2.
+
+
+![Interacciones polares entre la proteína SARS-CoV-2 Spike RBD (blanca) y la proteína ACE2 humana (azul) calculadas por Pymol usando la herramienta de mutagénesis. A) Interacción del residuo ASN501 (N501) de tipo salvaje en el dominio de unión a proteínas Spike SARS-CoV (RBD) con tirosina 41 en ACE2; B) Cuando la asparagina es reemplazada por tirosina en RBD, el número de posibles interacciones de hidrógeno aumenta entre Spike RBD y ACE2, posiblemente explicando la mayor afinidad entre la proteína Spike del virus y ACE2.](/Users/gepolianochaves/Desktop/Gepoliano/ReComBio_Notebook_Preparation/Figures/ACE2_Spike.png){width=90%}
+
+
+#7. Referencias
+
+* Variantes de Brasil, Sudáfrica y Reino Unido
+
+https://www.the-scientist.com/news-opinion/a-guide-to-emerging-sars-cov-2-variants-68387
+
+* * Llamada variante * Samtools
+
+https://www.ebi.ac.uk/sites/ebi.ac.uk/files/content.ebi.ac.uk/materials/2014/140217_AgriOmics/dan_bolser_snp_calling.pdf
+
+* Modelo de interacción ACE2 y RBD de la proteína Spike:
+
+https://www.youtube.com/watch?v=hcnnKrlqa9M
+
+* Estructura del banco de datos de proteínas (PDB):
+
+https://www.rcsb.org/structure/6VW1
+
+* Indicación de aminoácidos en Pymol:
+
+https://www.youtube.com/watch?v=nFY3EjBNPBQ
+
+* Mutagénesis usando Pymol:
+
+https://www.youtube.com/watch?v=M-VCBz83nfs
+

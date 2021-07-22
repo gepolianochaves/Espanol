@@ -1,0 +1,460 @@
+---
+title: "Introducción a la línea de comandos (Terminal) y la sintaxis de la lenguage R"
+autor: "Gepoliano Chaves, Ph. D."
+fecha: "09 de junio de 2021"
+#output: reveljs :: reveljs_presentation
+#output: html_notebook
+#output: beamer_presentation
+#output: github_document
+#output: html_vignette
+#output: ioslides_presentation
+output: slidy_presentation
+#salida: tufte :: tufte_book
+#output: pdf_document
+---
+# 1) Conceptos básicos de R
+
+# 1.1) Pasos básicos
+
+* Se puede acceder a R haciendo clic en un icono o ingresando el comando "R" en la línea de comando del sistema, también conocido como Terminal
+
+* Esto produce una ventana de consola o hace que R se inicie como un programa interactivo en la ventana de terminal actual
+
+* R funciona fundamentalmente mediante un modelo de preguntas y respuestas: ingrese una línea con un comando y presione Enter
+
+* Entonces el programa hace algo relevante
+
+* En este curso, usaremos RStudio y un formato de archivo llamado R Markdown, que nos permite codificar usando no solo R, sino bash y Python, otros dos lenguajes a los que podemos referirnos a medida que avanza el curso.
+
+# 1.2) Biblioteca ISwR
+
+* Todos los ejemplos en el libro utilizados como referencia deben ejecutarse siempre que la biblioteca ISwR no solo se instale sino que también se cargue en la ruta de búsqueda actual
+
+* La biblioteca se puede instalar y cargar escribiendo el siguiente comando en un fragmento de R
+
+```{r, eval = F}
+#install.packages ("ISwR")
+package("ISwR")
+```
+
+* Para tener una primera impresión de lo que puede hacer R, intentemos trazar un gráfico.
+
+# 1.3) Trazar números aleatorios
+
+* Necesita insertar el fragmento R y usar la función de trazado
+
+```{r}
+plot(rnorm(1000))
+```
+
+# 1.4) Una calculadora potente
+
+* R puede procesar expresiones aritméticas simples y complejas y producir un resultado para el usuario
+
+```{r}
+2 + 2
+```
+
+* R también se puede utilizar para realizar otros cálculos estándar. Aquí se explica cómo calcular e elevado a -2
+
+```{r}
+exp (-2)
+```
+
+* Aparte de los fragmentos R, estos cálculos se pueden realizar utilizando RStudio Console
+
+# 1.5) Asignaciones
+
+* Asignaciones realizadas en función de la necesidad de almacenar los resultados de los cálculos y utilizar estos resultados en los pasos de procesamiento posteriores en una tubería completa
+
+* Como otros lenguajes, R tiene variables simbólicas: nombres que pueden usarse para representar valores
+
+* Para asignar el valor 2 a la variable x, se puede ingresar
+
+```{r}
+x <- 2
+```
+
+* El carácter <- se llama operador de asignación
+
+* No hay un resultado visible inmediato, pero a partir de ahora, x tiene el valor 2 y se puede utilizar en operaciones aritméticas posteriores.
+
+# 1.6) Operaciones después de la asignación de variables
+
+* A continuación, nuestra variable x, se utiliza para realizar otros cálculos.
+
+```{r}
+x
+x + x ## Adición
+5 * x ## Multiplicación
+x ^ 3 ## Potenciación
+```
+
+# 1.7) Aritmética vectorizada
+
+* No es útil usar un número a la vez para ejecutar estadísticas
+
+* Una ventaja de R es que puede manejar vectores de datos completos como objetos individuales
+
+* Un vector de datos es una matriz de números y una variable de vector se puede construir así
+
+```{r}
+peso <- c (60, 72, 57, 90, 95, 72)
+## Para ver la variable vectorial, simplemente escribe su nombre nuevamente
+peso
+```
+
+* Puede hacer cálculos con vectores como números ordinarios, siempre que tengan la misma longitud
+
+* Una excepción a esta regla que veremos será cuando usamos la media de pesos de personas (representada por xbar)
+
+* En ese caso, la media será un solo número, que se restará de cada valor de muestra
+
+# 1.7) Aritmética vectorizada
+
+* Suponga que el vector de peso indica el peso de los hombres en kilogramos.
+
+* Una fórmula simple para indicar si una persona es obesa o no, es el índice de masa corporal (IMC)
+
+* El IMC se calcula dividiendo el peso de la persona por el cuadrado de su altura, en metros.
+
+* Por lo tanto, en R, necesitamos tener un vector con los valores de altura para calcular el vector bmi, que contenga el índice de masa corporal para los individuos indicados en el vector de peso.
+
+```{r}
+altura <- c (1.75, 1.80, 1.65, 1.90, 1.74, 1.91)
+bmi <- peso / altura ^ 2
+bmi
+```
+
+# 1.8) Calcular la media de la variable peso
+
+* La media se calcula mediante la suma de las observaciones dividida por el número total de observaciones.
+
+ $\overline{x}$ = $\sum x_i$ / n
+
+* Calculemos la media de la variable peso
+
+```{r}
+sum(peso)
+
+sum(peso) / length(peso)
+```
+
+# 1.9) Calcule la desviación estándar del peso variable
+
+* La desviación estándar se puede calcular con la siguiente ecuación
+
+$$ SD = \sqrt{(\sum(x_i-\overline{x})^2)/(n-1)} $$
+
+* xbar, la media del peso variable, se puede calcular utilizando la suma y la longitud del peso variable
+
+```{r}
+xbar <- sum(peso) / length(peso)
+xbar
+```
+
+* Ahora podemos calcular la diferencia de cada réplica en la variable ponderación y la media de la variable ponderación, una por una
+
+```{r}
+peso - xbar
+```
+
+* Observe cómo R usa xbar, que tiene una longitud de uno, para calcular el nuevo peso - vector de datos xbar
+
+* xbar se recicla y se resta de cada elemento en la variable de peso (vector de datos de peso)
+
+# 1.10) Cálculo de la desviación estándar
+
+* Calcular las desviaciones cuadradas
+
+```{r}
+(peso - xbar) ^ 2
+```
+
+* Calcular la suma de las desviaciones al cuadrado
+
+```{r}
+sum ((peso - xbar) ^ 2)
+```
+
+* Calcular la desviación estándar
+
+```{r}
+sqrt(
+  sum(
+    (peso - xbar) ^ 2 /
+      (length (peso) -1)
+)
+)
+```
+
+# 1.11) Procedimientos estadísticos estándar
+
+* Es una práctica médica estándar para acceder si una persona es obesa o no utilizando criterios científicos validados
+
+* Como procedimiento simple para mostrar este concepto, supongamos que una persona con un peso normal debe tener un IMC en el rango de 20-25.
+
+* Queremos saber si nuestros datos se desvían del rango normal de IMC
+
+* En R, esto se puede hacer usando una prueba estadística llamada prueba t
+
+* No es necesario que comprenda qué es una prueba t, solo recuerde que se usa para evaluar la distribución de los valores de la muestra en comparación con la distribución normal
+
+* Puede usar una prueba t de una muestra para evaluar si se puede suponer que el IMC de las seis personas tiene una media de 22,5 dado que provienen de una distribución normal
+
+* Puedes hacerlo usando la función t.test
+
+# 1.11) Procedimientos estadísticos estándar: prueba t
+
+```{r}
+t.test(
+  bmi,
+  mu = 22.5
+)
+```
+
+# 1.12) Gráficos de trama
+
+* Tracemos ahora un diagrama de dispersión de la altura y el peso de los individuos.
+
+```{r}
+plot (altura, peso)
+```
+
+# 1.12) Gráficos de trazado Modificación del personaje de trazado
+
+* Con frecuencia querrá modificar el dibujo de sus gráficos de varias maneras
+
+* Una forma es utilizar el parámetro "trazar carácter", pch
+
+```{r}
+plot (altura, peso, pch = 2)
+```
+
+# 1.13) Trace una línea esperada para el IMC
+
+```{r, eval = F}
+hh <- 22,5 * (altura) ^ 2
+```
+
+# 1.14) Vectores
+
+* Los vectores de peso y altura se denominan vectores numéricos
+
+* Además de los vectores numéricos, hay vectores numéricos y de caracteres
+
+# 2) Usando otras bibliotecas
+
+# 2.1) El marco de datos del iris
+
+* Ahora que tenemos una mejor comprensión de lo que R nos puede dar, usemos otra biblioteca de conjuntos de datos de uso más común
+
+* A veces, es posible que necesite descubrir diferentes formas de instalar una biblioteca para usarla
+
+```{r}
+library (datasets)
+```
+
+* En el siguiente fragmento, accedemos a los datos del iris y observamos un resumen del conjunto de datos.
+
+```{r}
+data (iris)
+summary (iris)
+```
+
+# 2.1) El marco de datos del iris
+
+* Otra forma de mirar el marco de datos del iris es escribir su nombre
+
+```{r}
+iris
+```
+# 3) Más visualización del conjunto de datos del iris
+
+* cabeza
+
+```{r}
+head (iris, n = 10)
+```
+
+* número de columnas y filas
+
+```{r}
+dim (iris)
+```
+
+* la función class ()
+
+```{r}
+class (iris)
+```
+
+# 4) Más visualización
+
+# 4.1) Diagrama de dispersión
+
+```{r, eval = T}
+plot (data = iris, iris $ Sepal.Length, iris $ Sepal.Width) ## R se quejará de este comando
+
+plot (iris $ Sepal.Length, iris $ Sepal.Width) ## De acuerdo con el error, esto se trazó usando un Synthax diferente
+```
+
+# 4.2) Diagrama de caja
+
+```{r, eval = T}
+boxplot (datos = iris, iris $ Sepal.Length, iris $ Sepal.Width)
+```
+
+# 5) Visualización de datos con bibliotecas especializadas
+
+* En R, hay paquetes diseñados con el propósito de hacer gráficos atractivos. Este es el caso del ggplot2. El siguiente fragmento instala la biblioteca ggplot2, carga la biblioteca en el entorno R y luego traza los datos presentes en el marco de datos del iris.
+
+* Puede descomentar la línea de instalación si necesita instalarla
+
+# 5.1) Ggplot2
+
+```{r, eval = T}
+# install.packages ("ggplot2")
+library (ggplot2)
+ggplot (data = iris, aes (x = Sepal.Length, y = Sepal.Width, color = Species)) + geom_point (tamaño = 4)
+```
+
+En nuestras actividades para visualizar datos genómicos humanos, usaremos una biblioteca llamada qqman, para visualizar la asociación biológica, a través de un diagrama conocido como diagrama de Manhattan.
+
+# 5.2) Visualización de GWAS
+
+La definición más simple de un GWAS es la asociación estadística o significativa entre un fenotipo (rasgo) y un genotipo. Esta asociación se puede llamar asociación biológica.
+
+# 5.3.1) Instalación del paquete
+
+* Necesitamos instalar y cargar el paquete qqman
+
+```{r, eval = T}
+## install.packages ("qqman")
+library (qqman)
+```
+
+* Después, cargamos el marco de datos para visualizarlo.
+
+* Se debe determinar la ubicación exacta del archivo de texto en su sistema
+
+```{r, eval = T}
+GWAS_TABLE <- read.table ("chr4.txt",
+                         sep = " ",
+                         header = T)
+```
+
+
+# 5.3.3) Obtener información sobre el objeto con head ()
+
+* Utilice la función head () para inspeccionar el marco de datos recién cargado
+
+```{r, eval = T}
+head (GWAS_TABLE, n = 10)
+```
+
+# 5.3.4) Trazado de tramas de datos GWAS
+
+* En esta sección usamos las funciones plot () y boxplot () para visualizar el marco de datos
+
+* En el acceso y, vemos coordenadas genómicas y en el acceso x, valores p de la asociación biológica
+
+* Tenga en cuenta que, según el Synthax utilizado para el trazado, R puede quejarse
+
+```{r, eval = T}
+plot (data = GWAS_TABLE, GWAS_TABLE $ BP, GWAS_TABLE $ P) ## R se queja
+```
+
+# 5.3.4) Trazado de tramas de datos GWAS
+
+```{r, eval = T}
+plot (GWAS_TABLE $ BP, GWAS_TABLE $ P) ## R no se queja
+```
+
+# 5.4) Diagrama de caja
+
+* Diagrama de caja
+
+```{r, eval = T}
+boxplot (datos = GWAS_TABLE, GWAS_TABLE $ BP, GWAS_TABLE $ P)
+```
+
+# 5.5) Diagrama de caja
+
+* Compare las coordenadas cromosómicas y los valores de los valores p en el diagrama de caja de arriba
+
+* El fragmento siguiente permite omitir valores NA en el marco de datos
+
+```{r, eval=T}
+GWAS_TABLE_Ommit <- na.omit(GWAS_TABLE)
+```
+
+# 5.6) Crear un vector para resaltar las coordenadas del genoma en el diagrama de Manhattan
+
+```{r, eval=T}
+SNP_HIGHLIGHT <- c("chr4:3043512","chr4:3043513","chr4:3048207","chr4:3224216",
+                   "chr4:3231772","chr4:3233844","chr4:3235081","chr4:3235084",
+                   "chr4:3236881","chr4:3236883","chr4:3241845","chr4:3243804",
+                   "chr4:3263138","chr4:3265130","chr4:3265710","chr4:3314646",
+                   "chr4:3380088","chr4:3409359","chr4:3411110","chr4:3415336",
+                   "chr4:3415378","chr4:3438643","chr4:3446091","chr4:3449886",
+                   "chr4:3473066","chr4:3476809","chr4:3480439","chr4:3487151",
+                   "chr4:3496058","chr4:3496110","chr4:3506933","chr4:3508752",
+                   "chr4:3510957","chr4:3512690","chr4:3517746","chr4:3518190",
+                   "chr4:3529671","chr4:3532327","chr4:3533066","chr4:3746133",
+                   "chr4:3747842","chr4:3748134","chr4:3765305","chr4:3765336",
+                   "chr4:3944253","chr4:3944752","chr4:3944888","chr4:3946166",
+                   "chr4:3946175","chr4:3969218","chr4:4051294","chr4:4076788",
+                   "chr4:4103104","chr4:4103105","chr4:4109198","chr4:4109210",
+                   "chr4:4240627","chr4:4242705","chr4:4243668","chr4:4245210",
+                   "chr4:4245510","chr4:4245513","chr4:4245591","chr4:4245926",
+                   "chr4:4245929","chr4:4246109","chr4:4246433","chr4:4246453",
+                   "chr4:4246457","chr4:4246497","chr4:4249414","chr4:4249415",
+                   "chr4:4249484","chr4:4271623","chr4:4275306","chr4:4304749",
+                   "chr4:4318931","chr4:4318970","chr4:4319564","chr4:4319728",
+                   "chr4:4319750","chr4:4322078","chr4:4709657","chr4:4732282",
+                   "chr4:4789635","chr4:4822960","chr4:4824890","chr4:4825092",
+                   "chr4:4825180","chr4:4865316","chr4:4865321","chr4:5018702",
+                   "chr4:5812778","chr4:5814082","chr4:5833660","chr4:5833899",
+                   "chr4:5835541","chr4:5851205","chr4:5862752","chr4:5862938",
+                   "chr4:5862943","chr4:5901873","chr4:5905499","chr4:5906287",
+                   "chr4:6018891","chr4:6019046","chr4:6020190","chr4:6020367",
+                   "chr4:6025638","chr4:6025656","chr4:6025766","chr4:6026058",
+                   "chr4:6083488","chr4:6204935","chr4:6235553","chr4:6237142",
+                   "chr4:6238466","chr4:6239906","chr4:6240929","chr4:6245022",
+                   "chr4:6245618","chr4:6245732","chr4:6245915","chr4:6246075",
+                   "chr4:6246373","chr4:6246959","chr4:6290594","chr4:6292020",
+                   "chr4:6294095","chr4:6298375","chr4:6316092","chr4:6321396",
+                   "chr4:6324647","chr4:6324785","chr4:6327669","chr4:6328354",
+                   "chr4:6328507","chr4:6333130","chr4:6333559","chr4:6333669",
+                   "chr4:6335966","chr4:6435341","chr4:6435486","chr4:6435926",
+                   "chr4:6437191","chr4:6437197","chr4:6457121","chr4:6457131",
+                   "chr4:6457132","chr4:6568390","chr4:6570032","chr4:6570768",
+                   "chr4:6596360","chr4:6613252","chr4:6613462","chr4:6620991",
+                   "chr4:6624771","chr4:6626154","chr4:6641969","chr4:6642090",
+                   "chr4:6644466","chr4:6644467","chr4:6644468","chr4:6647889",
+                   "chr4:6648300","chr4:6662665","chr4:6663319","chr4:6663715",
+                   "chr4:6674554","chr4:6678553","chr4:6678599","chr4:6690535",
+                   "chr4:6698664","chr4:6698667","chr4:6698706","chr4:6720572",
+                   "chr4:6911679","chr4:6985889","chr4:6987394","chr4:7002344",
+                   "chr4:7004495","chr4:7004506","chr4:7005196","chr4:7005199",
+                   "chr4:7024077","chr4:7024398","chr4:7029430","chr4:7031064",
+                   "chr4:7044357","chr4:7044380","chr4:7048842","chr4:7052115",
+                   "chr4:7055253","chr4:7064243","chr4:7067765","chr4:7073187",
+                   "chr4:7074027","chr4:7677967","chr4:7701947","chr4:7702795",
+                   "chr4:7703505","chr4:7703807","chr4:7704795","chr4:7704818",
+                   "chr4:7709703","chr4:7712150","chr4:7714490","chr4:7733843",
+                   "chr4:7735162","chr4:7735164","chr4:7736103","chr4:7736112")
+```
+
+# 5.7) Trazar la parcela de Manhattan
+
+* Finalmente, trazamos el gráfico de la trama de Manhattan
+
+```{r, eval = T}
+manhattan(GWAS_TABLE_Ommit, 
+          highlight = SNP_HIGHLIGHT, 
+          annotateTop = T, 
+          annotatePval = 0.20, 
+          genomewideline = -log10(0.0001))
+```
