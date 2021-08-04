@@ -1,0 +1,300 @@
+---
+title: "Construccion de Tabla de Incidencia o Tabla de Frecuencia de Alelos (Polimorfismos) de SARS-CoV-2"
+author: "Gepoliano Chaves, Ph. D."
+date: "04 de agosto, 2021"
+output: revealjs::revealjs_presentation
+#output: html_notebook
+#output: beamer_presentation
+#output: github_document
+#output: html_vignette
+#output: ioslides_presentation
+#output: slidy_presentation 
+#output: tufte::tufte_book
+---
+
+# 1) Transferir el Archivo Temporario con las Frecuencias de Mutaciones de SARS-CoV-2
+
+```{bash, eval = F}
+cp ~/Desktop/Gepoliano/SIP2020/Code/temp_file.txt ~/Desktop/Gepoliano/ReComBio_Notebook_Preparation
+cp ~/Desktop/treefile.newick ~/Desktop/Gepoliano/ReComBio_Notebook_Preparation
+```
+
+
+# 2) Mapa de calor y agrupación jerárquica
+
+# 2.1) Gráfico de mapa de calor
+
+# 2.2) Cargar datos de frecuencia de polimorfismo
+
+* La Tabla de Incidencia o de Frecuencia se construye usando los archivos VCF de la pipeline de Bash
+* Visualicemos inicialmente la tabla construida a partir del genotipado SARS-CoV-2 presente en los archivos VCF
+* El genotipado se realizó despues de la alineacion y la "llamada de variantes" o *variant call* que es hecha empezando con archivos FASTA o FASTQ (final = VCF)
+
+# 2.2) Cargar datos de frecuencia de polimorfismos
+
+* Como puedo contar en cuántos archivos VCF hay un SNP particular de interés, o muchos SNPs, puedo también medir la frecuencia de estes SNPs entre todos los archivos VCF que analicé en la *variant call*
+* La Tabla para el mapa de calor contiene los valores de frecuencia de los SNP identificados en SARS-CoV-2 en diferentes lugares del mundo y se puede construir utilizando la extracción del genotipo SNP que se muestra en el paso 3.
+
+# 2.2) El código
+
+```{r , eval = T}
+library("pheatmap")
+library("RColorBrewer")
+
+heatmap_table <- read.table("./temp_file.txt", row.names = 1, header = TRUE, sep = "\t") # Asignación
+heatmap_table = as.matrix(heatmap_table) # El paquete Pheatmap necessita de una "matriz" y non una "data-frame"
+```
+
+# 2.3) Gráfico de tabla de frecuencias alélicas sin normalización
+
+* Nótese que al graficar el mapa de calor con los valores de las frecuencias "crudas", o sin ninguna normalización, no observamos las frecuencias de los SNPs agrupando las secuencias de murciélagos y pangolines, como era de esperar
+
+* Esto no indica proximidad entre las secuencias de la Lejano Oriente.
+
+# 2.3) Gráfico de tabla de frecuencias alélicas sin normalización
+
+* Como verá a continuación, la normalización nos permite visualizar la agrupación de secuencias de murciélagos, pangolines y virus aislados en el la Lejano Oriente.
+
+* La normalización nos permite hacer una comparación con el analysis filogenético
+
+# 2.3) El código
+
+```{r heatmap1,eval=T}
+library("pheatmap")
+library("RColorBrewer")
+
+heatmap_table <- read.table("./temp_file.txt", row.names = 1, header = TRUE, sep = "\t")
+heatmap_table = as.matrix(heatmap_table)
+
+# Escolher a cor do heatmap
+col.pal <- brewer.pal(9,"Blues")
+
+# Definir o tipo de correlacao entre as amostras (colunas) e os genes (linhas)
+drows1 <- "euclidean"
+dcols1 <- "euclidean"
+
+#Plotar o heatmap, com as diversas opcoes determinadas
+hm.parameters <- list(heatmap_table, 
+                      color = col.pal,
+                      cellwidth = 14, cellheight = 12, scale = "none",
+                      treeheight_row = 200,
+                      kmeans_k = NA,
+                      show_rownames = T, show_colnames = T,
+                      #main = "Full heatmap (avg, eucl, unsc)",
+                      main = "Frequencies of SNP Variants of SARS-CoV-2",
+                      clustering_method = "average",
+                      cluster_rows = F, cluster_cols = T,
+                      clustering_distance_rows = drows1, 
+                      fontsize_row = 10,
+                      fontsize_col = 10,
+                      clustering_distance_cols = dcols1)
+do.call("pheatmap", hm.parameters)
+```
+
+
+
+# 2.4) Gráfico de tabla de frecuencias alélicas con normalización
+
+* La visualización del mapa de calor se puede normalizar utilizando la escala logarítmica
+* Tomar el logaritmo de la representación de la expresión génica es un procedimiento estándar, ya que ayuda a homogeneizar la variación de frecuencia y reducir la dimensionalidad en la variación en la visualización del mapa de calor
+* Debido a mi experiencia en la visualización de la expresión génica utilizando mapas de color o *heatmaps*, decidí implementar también la normalización de la frecuencia alélica de los genotipos de SARS-CoV-2 identificados en este proyecto
+
+
+```{r heatmap2, eval= T}
+library("pheatmap")
+library("RColorBrewer")
+
+heatmap_table <- read.table("./temp_file.txt", row.names = 1, header = TRUE, sep = "\t")
+heatmap_table = as.matrix(heatmap_table)
+
+log_table_09_18_2020 = log (heatmap_table + 1)
+
+# Escolher a cor do heatmap
+col.pal <- brewer.pal(9,"Blues")
+
+# Definir o tipo de correlacao entre as amostras (colunas) e os genes (linhas)
+drows1 <- "euclidean"
+dcols1 <- "euclidean"
+
+#Plotar o heatmap, com as diversas opcoes determinadas
+hm.parameters <- list(log_table_09_18_2020, 
+                      color = col.pal,
+                      cellwidth = 14, cellheight = 12, scale = "none",
+                      treeheight_row = 200,
+                      kmeans_k = NA,
+                      show_rownames = T, show_colnames = T,
+                      #main = "Full heatmap (avg, eucl, unsc)",
+                      main = "Frequencies of SNP Variants of SARS-CoV-2",
+                      clustering_method = "average",
+                      cluster_rows = F, cluster_cols = T,
+                      clustering_distance_rows = drows1, 
+                      fontsize_row = 10,
+                      fontsize_col = 10,
+                      clustering_distance_cols = dcols1)
+do.call("pheatmap", hm.parameters)
+
+```
+
+# 3) Visualización de filogenias usando R
+
+* En esta sección, usamos la funcion "phylo" del proyecto VCF-kit, que incluye instrucciones sobre cómo usar este paquete, para intentar visualizar las relaciones de variación entre las secuencias de SARS-CoV-2 directamente desde los archivos VCF. 
+
+* Para usar este programa, necesitamos un tipo especial de archivo llamado Newick. 
+
+* Luego, necesitamos transformar los archivos VCF en Newick. 
+
+# 3) Visualización de filogenias usando R
+
+* Debajo del gráfico se prueba utilizando un archivo Newick, el archivo treefile.newwick.
+
+https://vcf-kit.readthedocs.io/en/latest/phylo/
+
+
+# 3.1) Instalación del paquete
+
+* Para la instalación de la biblioteca, error * R versión 3.5 o superior, instale los paquetes de Bioconductor usando BiocManager *
+
+* señala la necesidad de utilizar BiocManager
+
+* Un ejemplo del comando para instalar BiocManager es la línea presente en mis análisis GSEA:
+
+* BiocManager :: install ("clusterProfiler", versión = "3.8")
+
+* Con la línea a continuación, podemos determinar la versión de software que queremos usar.
+
+# 3.1) El código
+
+```{r, eval = F}
+install.packages("tidyverse")
+BiocManager::install(c('ape','phyloseq','ggmap'), suppressUpdates = TRUE)
+
+```
+
+
+# 3.2) Vista del archivo de prueba de Newick
+
+* En esta parte, usamos el archivo en formato newick. 
+
+* En el caso siguiente, el archivo se puede encontrar en el siguiente enlace: http://etetoolkit.org/treeview/.
+
+# 3.2) El Código
+
+```{r Newick, warning=F, message=F, eval = T}
+library(tidyverse)
+library(ape)
+library("ggmap")
+library(phyloseq)
+
+tree <- ape::read.tree(paste0("./treefile.newick"))
+
+# Optionally set an outgroup.
+# tree <- root(tree,outgroup = "outgroup", resolve.root = T)
+
+treeSegs <- phyloseq::tree_layout(
+                                phyloseq::phy_tree(tree),
+                                ladderize = T
+                                )
+
+treeSegs$edgeDT <- treeSegs$edgeDT  %>% 
+                   dplyr::mutate(edge.length = 
+                                    ifelse(edge.length < 0, 0, edge.length)
+                                 , xright = xleft + edge.length
+                                 )
+edgeMap = aes(x = xleft, xend = xright, y = y, yend = y)
+vertMap = aes(x = x, xend = x, y = vmin, yend = vmax)
+labelMap <- aes(x = xright+0.0001, y = y, label = OTU)
+
+ggplot(data = treeSegs$edgeDT) + geom_segment(edgeMap) + 
+  geom_segment(vertMap, data = treeSegs$vertDT) +
+  geom_text(labelMap, data = dplyr::filter(treeSegs$edgeDT, !is.na(OTU)), na.rm = TRUE, hjust = -0.05) +
+  ggmap::theme_nothing() + 
+  scale_x_continuous(limits = c(
+    min(treeSegs$edgeDT$xleft)-0.15,
+    max(treeSegs$edgeDT$xright)+0.15
+  ),
+  expand = c(0,0))
+```
+
+# 4) Visualización de dendrogramas
+
+```{r}
+#Create random data
+data <- replicate(20, rnorm(50))
+rownames(data) <- paste("Gene", c(1:nrow(data)))
+colnames(data) <- paste("Sample", c(1:ncol(data)))
+
+out <- pheatmap(data, 
+      show_rownames=T, cluster_cols=T, cluster_rows=T, scale="row",
+      cex=1, clustering_distance_rows="euclidean", cex=1,
+      clustering_distance_cols="euclidean", clustering_method="complete", border_color=FALSE)
+
+out <- pheatmap(log_table_09_18_2020, 
+      show_rownames=T, cluster_cols=T, cluster_rows=T, scale="row",
+      cex=1, clustering_distance_rows="euclidean", cex=1,
+      clustering_distance_cols="euclidean", clustering_method="complete", border_color=FALSE)
+```
+
+
+# 5) Reordenar los datos originales
+
+
+```{r}
+#Re-order original data (genes) to match ordering in heatmap (top-to-bottom)
+rownames(data[out$tree_row[["order"]],])
+
+#Re-order original data (samples) to match ordering in heatmap (left-to-right)
+#colnames(data[,out$tree_col[["order"]]])
+
+```
+
+# 6) 'corte' su dendrograma de fila en un número preseleccionado de grupos de la siguiente manera:
+
+```{r}
+#2 groups
+sort(cutree(out$tree_row, k=2))
+```
+
+# 7) Trazar una grafica de Agrupamientos
+
+```{r}
+plot(out$tree_col)
+abline(h=7, col="red", lty=2, lwd=2)
+```
+
+# 8) Nueva Tabla de Frecuencias para Brasil
+
+```{r}
+library("pheatmap")
+library("RColorBrewer")
+
+heatmap_table_VOC <- read.table("~/Desktop/Gepoliano/ReComBio_Notebook_Preparation/Tabla_Incidencia_Frecuecia.txt", row.names = 1, header = TRUE, sep = "\t")
+heatmap_table_VOC = as.matrix(heatmap_table_VOC)
+
+frequency_table_log = log (heatmap_table_VOC + 1)
+
+# Escolher a cor do heatmap
+col.pal <- brewer.pal(9,"Blues")
+
+# Definir o tipo de correlacao entre as amostras (colunas) e os genes (linhas)
+drows1 <- "euclidean"
+dcols1 <- "euclidean"
+
+#Plotar o heatmap, com as diversas opcoes determinadas
+hm.parameters <- list(frequency_table_log, 
+                      color = col.pal,
+                      cellwidth = 14, cellheight = 7, scale = "none",
+                      treeheight_col = 20,
+                      treeheight_row = 50,
+                      kmeans_k = NA,
+                      show_rownames = T, show_colnames = T,
+                      #main = "Full heatmap (avg, eucl, unsc)",
+                      main = "SARS-CoV-2 SNP Frequency or Incidence Table",
+                      clustering_method = "average",
+                      cluster_rows = F, cluster_cols = T,
+                      clustering_distance_rows = drows1, 
+                      fontsize_row = 8,
+                      fontsize_col = 8,
+                      clustering_distance_cols = dcols1)
+do.call("pheatmap", hm.parameters)
+```
+
