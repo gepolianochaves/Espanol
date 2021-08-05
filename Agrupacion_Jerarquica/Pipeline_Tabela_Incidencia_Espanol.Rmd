@@ -261,7 +261,7 @@ plot(out$tree_col)
 abline(h=7, col="red", lty=2, lwd=2)
 ```
 
-# 8) Nueva Tabla de Frecuencias para Brasil
+# 8) Nueva Tabla de Frecuencias para Diversas Regiones
 
 ```{r}
 library("pheatmap")
@@ -298,3 +298,40 @@ hm.parameters <- list(frequency_table_log,
 do.call("pheatmap", hm.parameters)
 ```
 
+# 9) Tabla de Frecuencias Diversas Regiones Solo Variantes del 2020
+
+```{r heatmap2, eval= T}
+library("pheatmap")
+library("RColorBrewer")
+
+heatmap_table <- read.table("~/Desktop/Gepoliano/ReComBio_Notebook_Preparation/Tabla_Incidencia_Frecuecia_v3.txt", row.names = 1, header = TRUE, sep = "\t")
+heatmap_table = as.matrix(heatmap_table)
+
+frequency_table_log = log (heatmap_table + 1)
+
+# Escolher a cor do heatmap
+col.pal <- brewer.pal(9,"Blues")
+
+# Definir o tipo de correlacao entre as amostras (colunas) e os genes (linhas)
+drows1 <- "euclidean"
+dcols1 <- "euclidean"
+
+#Plotar o heatmap, com as diversas opcoes determinadas
+hm.parameters <- list(frequency_table_log, 
+                      color = col.pal,
+                      cellwidth = 14, cellheight = 12, scale = "none",
+                      treeheight_col = 20,
+                      treeheight_row = 50,
+                      kmeans_k = NA,
+                      show_rownames = T, show_colnames = T,
+                      #main = "Full heatmap (avg, eucl, unsc)",
+                      main = "Incidence Table: Variants 2020",
+                      clustering_method = "average",
+                      cluster_rows = F, cluster_cols = T,
+                      clustering_distance_rows = drows1, 
+                      fontsize_row = 10,
+                      fontsize_col = 10,
+                      clustering_distance_cols = dcols1)
+do.call("pheatmap", hm.parameters)
+
+```
